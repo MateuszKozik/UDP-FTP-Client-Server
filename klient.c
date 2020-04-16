@@ -32,22 +32,14 @@ int main(int argc, char** argv)
  
  	serwer_len = sizeof(serwer_addres);
 
-
     initscr();
 
 	//utworzenie okien
 	WINDOW * naglowek = newwin(5, 30, 0, 15);
 	WINDOW * menu = newwin(10, 50, 6 , 5);
 
-	init_pair(1, COLOR_RED, COLOR_BLACK);
-	init_pair(2, COLOR_GREEN, COLOR_BLACK);
-	init_pair(3, COLOR_BLUE, COLOR_BLACK);
-
 	box(naglowek,0,0);
 	box(menu, 0,0);
-	
-	wattroff(menu, COLOR_PAIR(3));
-
 
 	refresh();
 	wrefresh(naglowek);
@@ -130,13 +122,13 @@ int main(int argc, char** argv)
 
             } else{
             	//przeslanie informacji o wybranej operacji
-	            sendto(listenfd, typ[wybor], 20 , 0 , &serwer_addres, serwer_len);
+	            sendto(listenfd, typ[wybor], 20 , 0 , (struct sockaddr *) &serwer_addres, serwer_len);
 
 	            //reset buffora (zapelnienie go zerami)
 	            memset(bufor,0,1024);        
 
 	            //przeslanie nazwy pliku
-	            sendto(listenfd, plik, 20 , 0 , &serwer_addres, serwer_len);
+	            sendto(listenfd, plik, 20 , 0 , (struct sockaddr *) &serwer_addres, serwer_len);
 	            memset(bufor,0,1024);
 				mvwprintw(menu, 6, 11, "Trwa wysylanie pliku \"%s\"",plik);
 				wrefresh(menu);
@@ -149,7 +141,7 @@ int main(int argc, char** argv)
 	            sprintf(rozmiarPliku, "%d", rozmiar);
 
 	            //przeslanie rozmiaru pliku do serwera
-	            sendto(listenfd, rozmiarPliku, 20 , 0 , &serwer_addres, serwer_len);
+	            sendto(listenfd, rozmiarPliku, 20 , 0 ,(struct sockaddr *) &serwer_addres, serwer_len);
 
 	            memset(bufor,0,1024);
 
@@ -159,7 +151,7 @@ int main(int argc, char** argv)
 	            //przesylanie kolenych blokow danych az do zakonczenia pliku
 	            int licznik =1;
 	            while(licznik*1024<rozmiar){
-	                sendto(listenfd, bufor, 1024 , 0 , &serwer_addres, serwer_len);
+	                sendto(listenfd, bufor, 1024 , 0 ,(struct sockaddr *) &serwer_addres, serwer_len);
 	                memset(bufor,0,1024);
 	                fread(bufor, 1024,1,f);
 	                licznik++;
@@ -167,7 +159,7 @@ int main(int argc, char** argv)
 
 	            //przeslanie ostatniego bloku danych, ktory zostal pominiety przy wykonywaniu petli
 	            fread(bufor, (rozmiar % 1024),1,f);
-	            sendto(listenfd, bufor, (rozmiar % 1024) , 0 , &serwer_addres, serwer_len);
+	            sendto(listenfd, bufor, (rozmiar % 1024) , 0 ,(struct sockaddr *) &serwer_addres, serwer_len);
 	            memset(bufor,0,1024);
 
 	            //zamkniecie pliku
@@ -196,7 +188,7 @@ int main(int argc, char** argv)
     		wrefresh(naglowek);
 
             //przeslanie informacji o wybranej operacji
-            sendto(listenfd, typ[wybor], 20 , 0 , &serwer_addres, serwer_len);
+            sendto(listenfd, typ[wybor], 20 , 0 ,(struct sockaddr *) &serwer_addres, serwer_len);
             memset(bufor,0,1024);
 
             //zmienna przechowujaca nazwe pliku
@@ -205,11 +197,11 @@ int main(int argc, char** argv)
             mvwscanw(menu, 3, 11, "%s",&plik);
 
             //przeslanie nazwy pliku
-            sendto(listenfd, plik, 20 , 0 , &serwer_addres, serwer_len);
+            sendto(listenfd, plik, 20 , 0 ,(struct sockaddr *) &serwer_addres, serwer_len);
             memset(bufor,0,1024);
 
 			char sprawdz[20];
-           	recvfrom(listenfd, bufor, 20, 0, &serwer_addres, &serwer_len);
+           	recvfrom(listenfd, bufor, 20, 0,(struct sockaddr *) &serwer_addres, &serwer_len);
            	strcpy(sprawdz, bufor);
 			memset(bufor,0,1024);
 			if(strcmp(sprawdz, "n") == 0){
@@ -230,7 +222,7 @@ int main(int argc, char** argv)
 				wrefresh(menu);
 
 				//pobranie rozmiaru pliku
-	            recvfrom(listenfd, bufor, 20, 0, &serwer_addres, &serwer_len);
+	            recvfrom(listenfd, bufor, 20, 0,(struct sockaddr *) &serwer_addres, &serwer_len);
 	            unsigned long rozmiar = atoi(bufor);
 
 	            //otworzenie pliku w trybie do zapisu binarnego
@@ -242,14 +234,14 @@ int main(int argc, char** argv)
 	            //pobieranie pliku
 	            while(licznik*1024<rozmiar)
 	            {
-	                recvfrom(listenfd, bufor, 1024, 0, &serwer_addres,&serwer_len);
+	                recvfrom(listenfd, bufor, 1024, 0,(struct sockaddr *) &serwer_addres,&serwer_len);
 	                fwrite(bufor,1024, 1, f);
 	                memset(bufor,0,1024);
 	                licznik++;
 	            }
 
 	            //pobranie ostatniego bloku danych, ktory zostal pominiety przy wykonywaniu petli
-	            recvfrom(listenfd, bufor, (rozmiar%1024), 0, &serwer_addres, &serwer_len);
+	            recvfrom(listenfd, bufor, (rozmiar%1024), 0,(struct sockaddr *) &serwer_addres, &serwer_len);
 	            fwrite(bufor,(rozmiar%1024), 1, f);
 	            memset(bufor,0,1024);
 
